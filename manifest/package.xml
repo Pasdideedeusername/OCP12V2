@@ -38,6 +38,7 @@
     </types>
     <types>
        <members>Contact.ExternalId__c</members>
+       <members>Contact.IsActive__c</members>
        <name>CustomField</name>
     </types>
     <version>58.0</version>
