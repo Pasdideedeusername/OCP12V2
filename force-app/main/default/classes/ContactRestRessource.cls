@@ -1,120 +1,111 @@
+/**
+ *    Cette classe Apex définit des services REST pour la manipulation des objets Contact dans Salesforce.
+ *    Elle prend en charge les opérations de mise à jour en vrac des champs et de désactivation des contacts.
+ *    REMARQUE: Les champs ExternalId__c et IsActive__c champs customs qui doivent avoir été créés au préalable.
+
+ *    @author Carine Flood
+ *    @version 1.0
+ *    @since 2023-11-14
+ */
+
 @RestResource(urlMapping='/Contact/*')
 global with sharing class ContactRestRessource {
-
-    /* inutile car le put fait aussi la création de commptes
-     
-    @HttpPost // bulkifier comme apres
-    global static Id createContact(String email, String name) {
-        System.debug(RestContext.request.requestBody);
-        // Recherche du contact existant avec l'email donné dans le champ ExternalId
-        List<Contact> existingContacts = [SELECT Id FROM Contact WHERE ExternalId__c = :email LIMIT 1];
-
-        if (existingContacts.isEmpty()) {
-            // crée le contact s'il n'existe pas déjà
-            Contact newContact = new Contact(ExternalId__c = email, Email = email, LastName = name);
-            newContact.ExternalId__c = email; // Utilisation du champ ExternalId__c pour l'email
-            // On ppourra ajouter d'autres champs ici en fonction des informations fournies par le CRM AXG
-
-            // Insère le nouveau contact dans Salesforce
-            insert newContact;
-            // retourne l'Id du nouveau contact 
-            return newContact.Id;
-        } else{
-            //sinon retourne l'Id du contact existant
-            Contact existingContact = existingContacts[0];
-            return existingContact.Id;
-        }
-    }
+    /**
+    * Met à jour en masse les champs des contacts, ou crée de nouveaux contacts (upsert) en fonction des données fournies.
+    * 
+    Exemple d'utilisation:
+    *    - Mise à jour ou création (upsert) en vrac de contacts:
+    *      Endpoint: /services/apexrest/Contact/
+    *      Méthode: PUT
+    *      Expemple de corps de la requête:
+    *      {
+    *        "records": [
+    *          {
+    *            "ExternalId__c": "externalId fourni par AGX",
+    *            "FirstName": "NouveauPrénom",
+    *            "LastName": "NouveauNom"
+    *          }, {
+    *            "ExternalId": ""externalId fourni par AGX"",
+    *            "Email": "nouveau@email.com"
+    *          }]
+    *      }
+    *  @return Liste des informations des contacts mis à jour.
     */
 
     @HttpPut
     global static List<Map<String, String>> updateContactFields() {
         //récupère la demande (request) HTTP entrante
         RestRequest request = RestContext.request;
+        
         // désérialise le corps de la demande JSON en utilisant la méthode JSON.deserializeUntyped pour obtenir les paires nom-valeur.
         Map<String, Object> params = (Map<String, Object>)JSON.deserializeUntyped(request.requestbody.tostring());
-        System.debug(params);
         List<Object> enregistrements =(List<Object>) params.get('records');
-        System.debug(enregistrements);
+        
         // Crée une liste de contacts à mettre à jour en dehors de la boucle
         List<Contact> contactsToUpdate = new List<Contact>();
         
         for (Object enr : enregistrements){
             Map<String, Object> attributDesenregistrements = (Map<String,Object>)JSON.deserializeUntyped(JSON.serialize(enr));
-            
             Contact contact= new Contact(); 
-
             // itère à travers chaque champ et sa valeur dans les données JSON
             for (String fieldName : attributDesenregistrements.keySet()) {
                 // met à jour les champs du contact en utilisant les valeurs fournies dans les données JSON
                 contact.put(fieldName, attributDesenregistrements.get(fieldName));
             }
-            
             // Ajoute le contact à la liste des contacts à mettre à jour
-            contactsToUpdate.add(contact);
-               
+            contactsToUpdate.add(contact);   
         }
+        // Met à jour ou crée les contacts dans Salesforce
         upsert contactsToUpdate Contact.ExternalId__c;
-        
-            // Met à jour les contacts dans Salesforce
-    upsert contactsToUpdate Contact.ExternalId__c;
 
-    // Crée une liste pour stocker les informations des contacts mis à jour
-    List<Map<String, String>> updatedContactsInfo = new List<Map<String, String>>();
+        // Crée une liste pour stocker les informations qui seront retournés à Postman
+        List<Map<String, String>> updatedContactsInfo = new List<Map<String, String>>();
 
-    // Récupère les informations d'Id et ExternalId__c des contacts mis à jour
-    for (Contact updatedContact : contactsToUpdate) {
-        Map<String, String> contactInfo = new Map<String, String>();
-        contactInfo.put('Id', updatedContact.Id);
-        contactInfo.put('ExternalId__c', updatedContact.ExternalId__c);
-        updatedContactsInfo.add(contactInfo);
+        // Récupère les informations d'Id et ExternalId__c des contacts mis à jour
+        for (Contact updatedContact : contactsToUpdate) {
+            Map<String, String> contactInfo = new Map<String, String>();
+            contactInfo.put('Id', updatedContact.Id);
+            contactInfo.put('ExternalId__c', updatedContact.ExternalId__c);
+            updatedContactsInfo.add(contactInfo);
+        }
+        return updatedContactsInfo;
     }
-
-    return updatedContactsInfo;
-
-}
-    /*
-    le code assume ici qu'un champ custom IsActive est créé sur le contact Salesforce. 
-    La logique d'utilisation de ce champ n'est pas considéré dans ce projet.
+    /**
+    * Désactive en masse les contacts en fonction des données fournies.
+    * 
+    *      Endpoint: /services/apexrest/Contact/
+    *      Méthode: DELETE
+    *      Corps de la requête:
+    *      {
+    *        "records": [
+    *          {
+    *            "ExternalId__c": "externalId fourni par AGX"
+    *          },{
+    *            "ExternalId__c": "externalId fourni par AGX"
+    *          }]
+    *      }
     */
+ 
     @HttpDelete 
     global static void deletedContactWillBeDeactivated() {
         //récupère la demande (request) HTTP entrante
         RestRequest request = RestContext.request;
 
-// désérialise le corps de la demande JSON en utilisant la méthode JSON.deserializeUntyped pour obtenir les paires nom-valeur.
+        // désérialise le corps de la demande JSON en utilisant la méthode JSON.deserializeUntyped pour obtenir les paires nom-valeur.
         Map<String, Object> params = (Map<String, Object>)JSON.deserializeUntyped(request.requestbody.tostring());
-        System.debug(params);
         List<Object> enregistrements =(List<Object>) params.get('records');
-        System.debug(enregistrements);
-        // Crée une liste de contacts à mettre à jour en dehors de la boucle
-        List<Contact> contactsToDelete = new List<Contact>();
-        
+
+        // Crée une liste pour contenir les ExternalId récupérés dans une itération sur les enregistrements 
+        List <String> externalIdsList = new List <String> ();
         for (Object enr : enregistrements){
             Map<String, Object> attributDesenregistrements = (Map<String,Object>)JSON.deserializeUntyped(JSON.serialize(enr));
-            
-            Contact contact= new Contact(); 
-
-            // itère à travers chaque champ et sa valeur dans les données JSON
-            for (String fieldName : attributDesenregistrements.keySet()) {
-                // met à jour les champs du contact en utilisant les valeurs fournies dans les données JSON
-                contact.put(fieldName, attributDesenregistrements.get(fieldName));
-                contact.IsActive__c = false;
-            }
-            
-            // Ajoute le contact à la liste des contacts à mettre à jour
-            contactsToDelete.add(contact);
-               
+            externalIdsList.add((String)attributDesenregistrements.get('ExternalId__c'));
         }
-        upsert contactsToDelete Contact.ExternalId__c;
-    
-    /*    
-        String ContactId = request.requestURI.substring(
-            request.requestURI.lastIndexOf('/')+1);
-        Contact thisContact = [SELECT Id FROM Contact WHERE ExternalId__c = :ContactId];
-        thisContact.IsActive__c = false;
-
-        update thisContact;
-    */    
+        //Recherche les contacts dont l'ExternalId est présent dans ExternalIdsList, désactive leur champ IsActive et les stocke dans une liste à mettre à jour
+        List<Contact> contactsToDelete = [SELECT Id FROM Contact WHERE ExternalId__c IN: externalIdsList];
+        for (Contact con : contactsToDelete ){
+            con.IsActive__c = false;
+        }
+        update contactsToDelete;
     }     
 }

@@ -15,8 +15,6 @@ private class ContractRestResourceTest {
 
         // Utilise l'ID du compte de test dans la demande de test
         String requestBody = '{ "records" : [ { "AccountId" : "' + testAccount.Id + '", "StartDate" : "2023-11-05", "ContractTerm" : "3" } ] }';
-        request.requestURI = '/services/apexrest/Contract/';
-        request.httpMethod = 'POST';
         request.requestBody = Blob.valueOf(requestBody);
 
         // Appelle la méthode createContract de la classe ContractRestResource
@@ -28,7 +26,6 @@ private class ContractRestResourceTest {
         System.assertEquals(1, result.size());
         Map<String, String> contractInfo = result[0];
         System.assertEquals(testAccount.Id, contractInfo.get('AccountId'));
-
     }
   
     @isTest
@@ -47,7 +44,6 @@ private class ContractRestResourceTest {
 
         // Utilise l'ID du contrat de test dans l'URI de la demande
         request.requestURI = '/services/apexrest/Contract/' + testContract.Id;
-        request.httpMethod = 'PATCH';
 
         // Corps de la demande JSON avec les données de mise à jour
         String requestBody = '{ "Name" : "Nouveau Nom", "Status" : "Activated" }';
@@ -62,6 +58,5 @@ private class ContractRestResourceTest {
         Contract updatedContract = [SELECT Name, Status FROM Contract WHERE Id = :testContract.Id];
         System.assertEquals('Nouveau Nom', updatedContract.Name);
         System.assertEquals('Activated', updatedContract.Status);
-
     }
 }

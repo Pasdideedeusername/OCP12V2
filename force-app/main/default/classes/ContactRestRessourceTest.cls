@@ -1,3 +1,7 @@
+/**
+* Classe de test pour la classe ContactRestRessource.
+* Cette classe de test vérifie le comportement des méthodes de la classe ContactRestRessource.
+*/
 @isTest
 private class ContactRestRessourceTest {
 
@@ -10,23 +14,16 @@ private class ContactRestRessourceTest {
             testContacts.add(c);
         }
         insert testContacts;
-        system.debug('liste des contacts à leur création' +testContacts);
-
 
         // Crée des données JSON de test pour la méthode updateContactFields.
         String jsonRequestBody = '{"records": [{"ExternalId__c": "test0@test.com","LastName": "Updated Contact0"},{"ExternalId__c": "testX@test.com","LastName": "Created ContactX"}]}';
 
         // Crée une requête HTTP avec les données JSON.
         HttpRequest request = new HttpRequest();
-        request.setEndpoint('https://ocp12-dev-ed.develop.my.salesforce.com/services/apexrest/Contact/'); 
-        request.setMethod('PUT');
-        request.setHeader('Content-Type', 'application/json');
         request.setBody(jsonRequestBody);
 
         // Crée une instance de System.RestRequest basée sur l'objet System.HttpRequest
         RestRequest restRequest = new RestRequest();
-        restRequest.requestURI = request.getEndpoint();
-        restRequest.httpMethod = request.getMethod();
         restRequest.requestBody = Blob.valueOf(request.getBody());
         RestContext.request = restRequest;
 
@@ -36,8 +33,7 @@ private class ContactRestRessourceTest {
         Test.stopTest();
 
         // Vérifie que les contacts ont été modifiés/créés comme prévu en consultant la base de données.
-        List<Contact> updatedContacts = [SELECT Id, LastName, ExternalId__c FROM Contact WHERE ExternalId__c IN ('test0@test.com', 'testx@test.com')];
-
+        List<Contact> updatedContacts = [SELECT Id, LastName, ExternalId__c FROM Contact WHERE ExternalId__c IN ('test0@test.com', 'testx@test.com') ORDER BY LastName DESC];
         System.assertEquals('Updated Contact0', updatedContacts[0].LastName);
         System.assertEquals('Created ContactX', updatedContacts[1].LastName);
     }
@@ -58,15 +54,10 @@ private class ContactRestRessourceTest {
 
         // Crée une requête HTTP avec les données JSON.
         HttpRequest request = new HttpRequest();
-        request.setEndpoint('https://ocp12-dev-ed.develop.my.salesforce.com/services/apexrest/Contact/'); 
-        request.setMethod('DELETE');
-        request.setHeader('Content-Type', 'application/json');
         request.setBody(jsonRequestBody);
 
         // Crée une instance de System.RestRequest basée sur l'objet System.HttpRequest
         RestRequest restRequest = new RestRequest();
-        restRequest.requestURI = request.getEndpoint();
-        restRequest.httpMethod = request.getMethod();
         restRequest.requestBody = Blob.valueOf(request.getBody());
         RestContext.request = restRequest;
 

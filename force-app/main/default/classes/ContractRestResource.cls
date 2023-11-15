@@ -6,6 +6,15 @@ global with sharing class ContractRestResource {
     * Cette méthode récupère les informations de la demande HTTP entrante, y compris les données JSON contenant les détails des contrats à créer.
     * Elle valide et traite les données, puis crée les contrats correspondants dans Salesforce. Elle renvoie une liste d'informations sur les contrats créés,
     * y compris leur ID et l'ID du compte associé.
+    * Voici un exemple de corps de requète:
+    * {
+    *   "records" : [{
+    *       "AccountId" : "0012o00003PqKn1AAF",
+    *       "StartDate" : "2023-11-05",
+    *       "Status" : "Draft",
+    *       "ContractTerm" : "3"
+    *   }]
+    *} 
     *
     * @return Une liste de mappages contenant les informations des contrats créés.
     */
@@ -40,12 +49,9 @@ global with sharing class ContractRestResource {
                     contract.put(fieldName, fieldValue);
                 }
             }
-            
-            
             // Ajoute le contact à la liste des contacts à créer
             contractsToCreate.add(contract);
         }
-               
         // Crée les contrats dans Salesforce
         insert contractsToCreate;
 
@@ -59,7 +65,6 @@ global with sharing class ContractRestResource {
             contractInfo.put('AccountId', createdContract.AccountId);
             createdContractsInfo.add(contractInfo);
         }
-
         return createdContractsInfo;
     }
     
@@ -71,7 +76,12 @@ global with sharing class ContractRestResource {
     * 
     * Cette méthode n'est pas "bulkifiée" contraiterement au reste du code de cette application du projet 12, l'ojectif étant ici de voir une autre façon d'utiliser
     * en utilisant l'Id de l'objet directement dans l'URI
+    * Voici un exemple de corps de requète:
+    * {
+    *   "Status" : "Activated"
+    *}
     */
+
     @HttpPatch
     global static void updateContractFields() {
         //récupère la demande (request) HTTP entrante
@@ -90,8 +100,6 @@ global with sharing class ContractRestResource {
             // met à jour les champs du contact en utilisant les valeurs fournies dans les données JSON
             thisContract.put(fieldName, params.get(fieldName));
         }
-        
         update thisContract;
     }
-
 }
